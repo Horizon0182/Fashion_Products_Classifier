@@ -3,7 +3,7 @@ import torch
 from PIL import Image
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 
-st.set_page_config(page_title="Fashion Image Classifier", page_icon="👕")
+st.set_page_config(page_title="Fashion Products Classifier", page_icon="👕")
 
 MODEL_PATH = "Albatrosszzz/Fashion_Clothes_Image_Classifier"
 
