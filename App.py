@@ -162,45 +162,131 @@ def generate_product_description(subcategory, caption, tokenizer, model):
 # =========================
 # UI
 # =========================
-st.title("Fashion Product Image Classifier")
-st.write("Upload a fashion product image to predict its subcategory and generate a short product description.")
+st.set_page_config(
+    page_title="Fashion Product Classifier",
+    page_icon="👗",
+    layout="wide"
+)
+
+st.markdown("""
+    <style>
+    .main-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+    .sub-text {
+        color: #666;
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .result-card {
+        background-color: #f8f9fa;
+        padding: 1.2rem;
+        border-radius: 14px;
+        border: 1px solid #e6e6e6;
+        margin-top: 0.8rem;
+    }
+    .label-box {
+        background-color: #eef4ff;
+        padding: 0.9rem 1rem;
+        border-radius: 12px;
+        border: 1px solid #d6e4ff;
+        margin-bottom: 1rem;
+    }
+    .label-title {
+        font-size: 0.95rem;
+        color: #555;
+        margin-bottom: 0.2rem;
+    }
+    .label-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #111;
+    }
+    .desc-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="main-title">Fashion Product Image Classifier</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="sub-text">Upload a fashion product image to predict its subcategory and generate a polished product description.</div>',
+    unsafe_allow_html=True
+)
+
+with st.sidebar:
+    st.header("About")
+    st.write(
+        "This demo uses an image classification model to predict the product subcategory, "
+        "then combines image captioning and a language model to generate a short e-commerce description."
+    )
+
+    st.header("Supported formats")
+    st.write("JPG, JPEG, PNG")
 
 models = load_models()
 device = models["device"]
 
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
-if uploaded_file is not None:
+if uploaded_file is None:
+    st.info("Please upload a fashion product image to begin.")
+else:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded image", use_container_width=True)
 
-    # 1) Predict only the most likely subcategory
-    subcategory_pred, subcategory_score = predict_top1(
-        image,
-        models["classifier_processor"],
-        models["classifier_model"],
-        device,
-    )
+    with st.spinner("Analyzing image and generating description..."):
+        # 1) Predict only the most likely subcategory
+        subcategory_pred, subcategory_score = predict_top1(
+            image,
+            models["classifier_processor"],
+            models["classifier_model"],
+            device,
+        )
 
-    # 2) Generate caption internally
-    caption = generate_caption(
-        image,
-        models["caption_processor"],
-        models["caption_model"],
-        device,
-    )
+        # 2) Generate caption internally
+        caption = generate_caption(
+            image,
+            models["caption_processor"],
+            models["caption_model"],
+            device,
+        )
 
-    # 3) Generate final product description with Qwen
-    description = generate_product_description(
-        subcategory=subcategory_pred,
-        caption=caption,
-        tokenizer=models["llm_tokenizer"],
-        model=models["llm_model"],
-    )
+        # 3) Generate final product description with Qwen
+        description = generate_product_description(
+            subcategory=subcategory_pred,
+            caption=caption,
+            tokenizer=models["llm_tokenizer"],
+            model=models["llm_model"],
+        )
 
-    # Display results
-    st.subheader("Predicted Subcategory")
-    st.write(f"**{subcategory_pred}** ({subcategory_score:.4f})")
+    left_col, right_col = st.columns([1, 1.1], gap="large")
 
-    st.subheader("Generated Product Description")
-    st.write(description)
+    with left_col:
+        st.image(image, caption="Uploaded Image", use_container_width=True)
+
+    with right_col:
+        st.markdown("""
+            <div class="label-box">
+                <div class="label-title">Predicted Subcategory</div>
+                <div class="label-value">{}</div>
+            </div>
+        """.format(subcategory_pred), unsafe_allow_html=True)
+
+        st.progress(min(float(subcategory_score), 1.0))
+        st.caption(f"Confidence score: {subcategory_score:.4f}")
+
+        st.markdown("""
+            <div class="result-card">
+                <div class="desc-title">Generated Product Description</div>
+                <div>{}</div>
+            </div>
+        """.format(description), unsafe_allow_html=True)
+
+    with st.expander("See technical details"):
+        st.write(f"**Predicted subcategory:** {subcategory_pred}")
+        st.write(f"**Confidence score:** {subcategory_score:.4f}")
+        st.write(f"**Internal image caption:** {caption}")
