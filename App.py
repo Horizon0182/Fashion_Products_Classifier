@@ -226,7 +226,7 @@ with st.sidebar:
     )
 
     st.header("Supported formats")
-    st.write("JPG, JPEG, PNG")
+    st.write("JPG, JPEG, PNG", "WEBP")
 
 models = load_models()
 device = models["device"]
