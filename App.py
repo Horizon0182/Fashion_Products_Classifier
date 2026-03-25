@@ -214,14 +214,14 @@ st.markdown("""
 
 st.markdown('<div class="main-title">Fashion Product Image Classifier</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="sub-text">Upload a fashion product image to predict its subcategory and generate a polished product description.</div>',
+    '<div class="sub-text">Upload a fashion product image to predict its category and generate a polished product description.</div>',
     unsafe_allow_html=True
 )
 
 with st.sidebar:
     st.header("About")
     st.write(
-        "This demo uses an image classification model to predict the product subcategory, "
+        "This demo uses an image classification model to predict the product category, "
         "then combines image captioning and a language model to generate a short e-commerce description."
     )
 
@@ -271,13 +271,13 @@ else:
     with right_col:
         st.markdown("""
             <div class="label-box">
-                <div class="label-title">Predicted Subcategory</div>
+                <div class="label-title">Predicted Category</div>
                 <div class="label-value">{}</div>
             </div>
         """.format(subcategory_pred), unsafe_allow_html=True)
 
-        st.progress(min(float(subcategory_score), 1.0))
-        st.caption(f"Confidence score: {subcategory_score:.4f}")
+        st.progress(min(float(Category_score), 1.0))
+        st.caption(f"Confidence score: {Category_score:.4f}")
 
         st.markdown("""
             <div class="result-card">
