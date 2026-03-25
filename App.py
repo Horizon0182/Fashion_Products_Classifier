@@ -126,7 +126,8 @@ def generate_product_description(subcategory, caption, tokenizer, model):
         text = tokenizer.apply_chat_template(
             messages,
             tokenize=False,
-            add_generation_prompt=True
+            add_generation_prompt=True,
+            enable_thinking=False
         )
     else:
         text = f"System: You are a helpful fashion e-commerce assistant.\nUser: {prompt}\nAssistant:"
@@ -152,6 +153,9 @@ def generate_product_description(subcategory, caption, tokenizer, model):
         skip_special_tokens=True
     )[0].strip()
 
+    if "</think>" in response:
+    response = response.split("</think>", 1)[1].strip()
+    
     return response
 
 
