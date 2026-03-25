@@ -3,3 +3,6 @@ torch
 transformers
 pillow
 safetensors
+sentencepiece
+accelerate
+protobuf
