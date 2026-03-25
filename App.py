@@ -27,7 +27,7 @@ LLM_MODEL_PATH = "Qwen/Qwen3-0.6B"
 def load_models():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # 1) Image classification model (subcategory)
+    # 1) Image classification model
     classifier_processor = AutoImageProcessor.from_pretrained(CLASSIFIER_MODEL_PATH)
     classifier_model = AutoModelForImageClassification.from_pretrained(CLASSIFIER_MODEL_PATH)
     classifier_model.to(device)
@@ -39,7 +39,7 @@ def load_models():
     caption_model.to(device)
     caption_model.eval()
 
-    # 3) LLM for product description generation
+    # 3) LLM for description generation
     llm_tokenizer = AutoTokenizer.from_pretrained(LLM_MODEL_PATH)
     llm_model = AutoModelForCausalLM.from_pretrained(
         LLM_MODEL_PATH,
@@ -62,7 +62,7 @@ def load_models():
 # =========================
 # Prediction helpers
 # =========================
-def predict_topk(image: Image.Image, processor, model, device, k=5):
+def predict_top1(image: Image.Image, processor, model, device):
     inputs = processor(images=image.convert("RGB"), return_tensors="pt")
     inputs = {kk: vv.to(device) for kk, vv in inputs.items()}
 
@@ -70,12 +70,11 @@ def predict_topk(image: Image.Image, processor, model, device, k=5):
         outputs = model(**inputs)
 
     probs = torch.softmax(outputs.logits, dim=-1)[0]
-    topk = torch.topk(probs, k)
+    pred_id = torch.argmax(probs).item()
+    pred_label = model.config.id2label[pred_id]
+    pred_score = float(probs[pred_id].item())
 
-    results = []
-    for idx, score in zip(topk.indices, topk.values):
-        results.append((model.config.id2label[idx.item()], float(score.item())))
-    return results
+    return pred_label, pred_score
 
 
 def generate_caption(image: Image.Image, caption_processor, caption_model, device):
@@ -106,7 +105,7 @@ Predicted subcategory: {subcategory}
 Image caption: {caption}
 
 Requirements:
-- Write 2 sentences only
+- Write 1 to 2 sentences only
 - Sound natural, stylish, and suitable for an online fashion store
 - Keep it concise
 - Focus on visible appearance and general usage
@@ -123,18 +122,21 @@ def generate_product_description(subcategory, caption, tokenizer, model):
         {"role": "user", "content": prompt},
     ]
 
-    text = tokenizer.apply_chat_template(
-        messages,
-        tokenize=False,
-        add_generation_prompt=True
-    )
+    if hasattr(tokenizer, "apply_chat_template"):
+        text = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
+        )
+    else:
+        text = f"System: You are a helpful fashion e-commerce assistant.\nUser: {prompt}\nAssistant:"
 
     model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
 
     with torch.no_grad():
         generated_ids = model.generate(
             **model_inputs,
-            max_new_tokens=120,
+            max_new_tokens=100,
             do_sample=True,
             temperature=0.8,
             top_p=0.9,
@@ -157,7 +159,7 @@ def generate_product_description(subcategory, caption, tokenizer, model):
 # UI
 # =========================
 st.title("Fashion Product Image Classifier")
-st.write("Upload a fashion product image to predict its subcategory and generate a product description.")
+st.write("Upload a fashion product image to predict its subcategory and generate a short product description.")
 
 models = load_models()
 device = models["device"]
@@ -168,17 +170,15 @@ if uploaded_file is not None:
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded image", use_container_width=True)
 
-    # 1) Predict subcategory
-    results = predict_topk(
+    # 1) Predict only the most likely subcategory
+    subcategory_pred, subcategory_score = predict_top1(
         image,
         models["classifier_processor"],
         models["classifier_model"],
         device,
-        k=5,
     )
-    subcategory_pred, subcategory_score = results[0]
 
-    # 2) Generate caption
+    # 2) Generate caption internally
     caption = generate_caption(
         image,
         models["caption_processor"],
@@ -186,7 +186,7 @@ if uploaded_file is not None:
         device,
     )
 
-    # 3) Generate product description with Qwen
+    # 3) Generate final product description with Qwen
     description = generate_product_description(
         subcategory=subcategory_pred,
         caption=caption,
@@ -197,13 +197,6 @@ if uploaded_file is not None:
     # Display results
     st.subheader("Predicted Subcategory")
     st.write(f"**{subcategory_pred}** ({subcategory_score:.4f})")
-
-    st.subheader("Top-5 Predictions")
-    for label, score in results:
-        st.write(f"**{label}** — {score:.4f}")
-
-    st.subheader("Image Caption")
-    st.write(caption)
 
     st.subheader("Generated Product Description")
     st.write(description)
