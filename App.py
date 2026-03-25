@@ -276,8 +276,8 @@ else:
             </div>
         """.format(subcategory_pred), unsafe_allow_html=True)
 
-        st.progress(min(float(Category_score), 1.0))
-        st.caption(f"Confidence score: {Category_score:.4f}")
+        st.progress(min(float(subcategory_score), 1.0))
+        st.caption(f"Confidence score: {subcategory_score:.4f}")
 
         st.markdown("""
             <div class="result-card">
