@@ -290,6 +290,3 @@ else:
         st.write(f"**Predicted subcategory:** {subcategory_pred}")
         st.write(f"**Confidence score:** {subcategory_score:.4f}")
         st.write(f"**Internal image caption:** {caption}")
-
-if st.button("Regenerate Description"):
-    description = generate_product_description(...)
