@@ -154,7 +154,7 @@ def generate_product_description(subcategory, caption, tokenizer, model):
     )[0].strip()
 
     if "</think>" in response:
-    response = response.split("</think>", 1)[1].strip()
+        response = response.split("</think>", 1)[1].strip()
     
     return response
 
