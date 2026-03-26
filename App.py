@@ -83,7 +83,7 @@ def predict_top1(image: Image.Image, processor, model, device):
 
 
 def generate_caption(image, subcategory, caption_processor, caption_model, device):
-    prompt = "a fashion product photo of a {subcategory}"
+    prompt = f"a fashion product photo of a {subcategory}"
     inputs = caption_processor(
         images=image.convert("RGB"),
         text=prompt,
