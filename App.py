@@ -256,6 +256,7 @@ else:
         caption_start_time = time.perf_counter()
         caption = generate_caption(
             image,
+            subcategory_pred,
             models["caption_processor"],
             models["caption_model"],
             device,
