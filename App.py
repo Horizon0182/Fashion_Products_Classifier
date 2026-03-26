@@ -1,5 +1,6 @@
 import streamlit as st
 import torch
+import time
 from PIL import Image
 from transformers import (
     AutoImageProcessor,
@@ -10,12 +11,16 @@ from transformers import (
     AutoModelForCausalLM,
 )
 
-st.set_page_config(page_title="Fashion Products Classifier", page_icon="👕")
+st.set_page_config(
+    page_title="Fashion Product Classifier",
+    page_icon="👗",
+    layout="wide"
+)
 
 # =========================
 # Model paths
 # =========================
-CLASSIFIER_MODEL_PATH = "Albatrosszzz/Fashion-Product-Classify-Vit"
+CLASSIFIER_MODEL_PATH = "Albatrosszzz/Fashion_Clothes_Image_Classifier"
 CAPTION_MODEL_PATH = "Salesforce/blip-image-captioning-base"
 LLM_MODEL_PATH = "Qwen/Qwen3-0.6B"
 
@@ -119,7 +124,7 @@ def generate_product_description(subcategory, caption, tokenizer, model):
 
     messages = [
         {"role": "system", "content": "You are a helpful fashion e-commerce assistant."},
-        {"role": "user", "content": prompt},
+        {"role": "user", "content": prompt + "\n/no_think"},
     ]
 
     if hasattr(tokenizer, "apply_chat_template"):
@@ -127,7 +132,7 @@ def generate_product_description(subcategory, caption, tokenizer, model):
             messages,
             tokenize=False,
             add_generation_prompt=True,
-            enable_thinking=False
+            enable_thinking=False,
         )
     else:
         text = f"System: You are a helpful fashion e-commerce assistant.\nUser: {prompt}\nAssistant:"
@@ -155,19 +160,15 @@ def generate_product_description(subcategory, caption, tokenizer, model):
 
     if "</think>" in response:
         response = response.split("</think>", 1)[1].strip()
-    
+
+    response = response.replace("<think>", "").replace("</think>", "").strip()
+
     return response
 
 
 # =========================
-# UI
+# UI styles
 # =========================
-st.set_page_config(
-    page_title="Fashion Product Classifier",
-    page_icon="👗",
-    layout="wide"
-)
-
 st.markdown("""
     <style>
     .main-title {
@@ -214,24 +215,28 @@ st.markdown("""
 
 st.markdown('<div class="main-title">Fashion Product Image Classifier</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="sub-text">Upload a fashion product image to predict its category and generate a polished product description.</div>',
+    '<div class="sub-text">Upload a fashion product image to predict its subcategory and generate a polished product description.</div>',
     unsafe_allow_html=True
 )
 
 with st.sidebar:
     st.header("About")
     st.write(
-        "This demo uses an image classification model to predict the product category, "
+        "This demo uses an image classification model to predict the product subcategory, "
         "then combines image captioning and a language model to generate a short e-commerce description."
     )
 
     st.header("Supported formats")
-    st.write("JPG, JPEG, PNG, WEBP")
+    st.write("JPG, JPEG, PNG")
 
+
+# =========================
+# Main app
+# =========================
 models = load_models()
 device = models["device"]
 
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png", "webp"])
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is None:
     st.info("Please upload a fashion product image to begin.")
@@ -239,7 +244,7 @@ else:
     image = Image.open(uploaded_file)
 
     with st.spinner("Analyzing image and generating description..."):
-        # 1) Predict only the most likely subcategory
+        # 1) Predict subcategory
         subcategory_pred, subcategory_score = predict_top1(
             image,
             models["classifier_processor"],
@@ -247,21 +252,25 @@ else:
             device,
         )
 
-        # 2) Generate caption internally
+        # 2) Generate caption + measure runtime
+        caption_start_time = time.perf_counter()
         caption = generate_caption(
             image,
             models["caption_processor"],
             models["caption_model"],
             device,
         )
+        caption_time = time.perf_counter() - caption_start_time
 
-        # 3) Generate final product description with Qwen
+        # 3) Generate LLM description + measure runtime
+        llm_start_time = time.perf_counter()
         description = generate_product_description(
             subcategory=subcategory_pred,
             caption=caption,
             tokenizer=models["llm_tokenizer"],
             model=models["llm_model"],
         )
+        llm_time = time.perf_counter() - llm_start_time
 
     left_col, right_col = st.columns([1, 1.1], gap="large")
 
@@ -271,7 +280,7 @@ else:
     with right_col:
         st.markdown("""
             <div class="label-box">
-                <div class="label-title">Predicted Category</div>
+                <div class="label-title">Predicted Subcategory</div>
                 <div class="label-value">{}</div>
             </div>
         """.format(subcategory_pred), unsafe_allow_html=True)
@@ -290,3 +299,5 @@ else:
         st.write(f"**Predicted subcategory:** {subcategory_pred}")
         st.write(f"**Confidence score:** {subcategory_score:.4f}")
         st.write(f"**Internal image caption:** {caption}")
+        st.write(f"**Image caption runtime:** {caption_time:.4f} seconds")
+        st.write(f"**LLM generation runtime:** {llm_time:.4f} seconds")
