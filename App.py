@@ -15,7 +15,7 @@ st.set_page_config(page_title="Fashion Products Classifier", page_icon="👕")
 # =========================
 # Model paths
 # =========================
-CLASSIFIER_MODEL_PATH = "Albatrosszzz/Fashion_Clothes_Image_Classifier"
+CLASSIFIER_MODEL_PATH = "Albatrosszzz/Fashion-Product-Classify-Vit"
 CAPTION_MODEL_PATH = "Salesforce/blip-image-captioning-base"
 LLM_MODEL_PATH = "Qwen/Qwen3-0.6B"
 
