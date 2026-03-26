@@ -22,7 +22,7 @@ st.set_page_config(
 # =========================
 CLASSIFIER_MODEL_PATH = "Albatrosszzz/Fashion-Product-Classify-Vit"
 CAPTION_MODEL_PATH = "Salesforce/blip-image-captioning-base"
-LLM_MODEL_PATH = "Qwen/Qwen3-0.6B"
+LLM_MODEL_PATH = "meta-llama/Llama-3.1-8B-Instruct"
 
 
 # =========================
