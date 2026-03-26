@@ -227,7 +227,7 @@ with st.sidebar:
     )
 
     st.header("Supported formats")
-    st.write("JPG, JPEG, PNG")
+    st.write("JPG, JPEG, PNG, WEBP")
 
 
 # =========================
@@ -236,7 +236,7 @@ with st.sidebar:
 models = load_models()
 device = models["device"]
 
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png", "webp"])
 
 if uploaded_file is None:
     st.info("Please upload a fashion product image to begin.")
